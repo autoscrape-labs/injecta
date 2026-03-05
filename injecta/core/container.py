@@ -1,3 +1,4 @@
+import inspect
 from collections.abc import Callable
 from typing import Any, TypeVar
 
@@ -38,17 +39,19 @@ class Container:
         self._singletons: dict[type[Any], Any] = {}
         self._factories: dict[type[Any], Callable[..., Any]] = {}
 
-    def register(self, protocol: type[T], implementation: T | type[T]) -> None:
+    def register(self, protocol: type[T], implementation: T | type[T] | Callable[..., T]) -> None:
         """Register a dependency for a given type.
 
-        If `implementation` is a class, it's treated as a factory (new instance
-        per resolution). If it's an instance, it's treated as a singleton.
+        If `implementation` is a class or function, it's treated as a factory
+        (new value per resolution). If it's an instance, it's treated as a
+        singleton.
 
         Args:
             protocol: The type to register (typically a Protocol class).
-            implementation: A concrete instance (singleton) or class (factory).
+            implementation: A concrete instance (singleton), class (factory),
+                or callable (factory).
         """
-        if isinstance(implementation, type):
+        if isinstance(implementation, type) or inspect.isfunction(implementation):
             self._factories[protocol] = implementation
             return
         self._singletons[protocol] = implementation
