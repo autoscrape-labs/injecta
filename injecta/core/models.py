@@ -14,10 +14,8 @@ class Dependant:
         call: The callable that produces the dependency value.
         dependencies: Sub-dependencies required by this callable.
         param_name: The parameter name this dependency maps to in the parent.
-        use_cache: Whether to cache the result within a single resolution cycle.
     """
 
     call: Callable[..., Any]
     dependencies: list['Dependant'] = field(default_factory=list)
     param_name: str = ''
-    use_cache: bool = True

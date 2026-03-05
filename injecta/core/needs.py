@@ -12,7 +12,6 @@ class Needs(Generic[T]):
 
     Args:
         dependency: The callable that provides the dependency value.
-        use_cache: Whether to cache the result within a single resolution cycle.
 
     Example:
         ```python
@@ -25,12 +24,11 @@ class Needs(Generic[T]):
         ```
     """
 
-    __slots__ = ('dependency', 'use_cache')
+    __slots__ = ('dependency',)
 
-    def __init__(self, dependency: Callable[..., T], *, use_cache: bool = True) -> None:
+    def __init__(self, dependency: Callable[..., T]) -> None:
         self.dependency = dependency
-        self.use_cache = use_cache
 
     def __repr__(self) -> str:
         name = getattr(self.dependency, '__name__', repr(self.dependency))
-        return f'Needs({name}, use_cache={self.use_cache})'
+        return f'Needs({name})'

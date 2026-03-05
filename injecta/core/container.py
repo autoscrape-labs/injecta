@@ -74,7 +74,7 @@ class Container:
 
         raise InjectionError(f"No registration found for '{protocol.__name__}'")
 
-    def Needs(self, protocol: type[T], *, use_cache: bool = True) -> NeedsMarker[T]:  # noqa: N802
+    def Needs(self, protocol: type[T]) -> NeedsMarker[T]:  # noqa: N802
         """Create a `Needs` marker bound to this container.
 
         Returns a `Needs` instance whose dependency resolves from this
@@ -82,7 +82,6 @@ class Container:
 
         Args:
             protocol: The type to resolve from this container.
-            use_cache: Whether to cache the result within a single resolution cycle.
 
         Returns:
             A `Needs` marker that resolves `protocol` from this container.
@@ -94,4 +93,4 @@ class Container:
                 db.query(...)
             ```
         """
-        return NeedsMarker(lambda: self.resolve(protocol), use_cache=use_cache)
+        return NeedsMarker(lambda: self.resolve(protocol))

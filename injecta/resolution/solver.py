@@ -6,48 +6,29 @@ from injecta.core.models import Dependant
 from injecta.exceptions import InjectionError
 
 
-async def solve_dependencies(
-    dependant: Dependant,
-    cache: dict[Callable[..., Any], Any] | None = None,
-) -> dict[str, Any]:
+async def solve_dependencies(dependant: Dependant) -> dict[str, Any]:
     """Resolve a dependency tree asynchronously, executing each dependency.
 
     Traverses the tree depth-first, resolving sub-dependencies before their
-    parents. Supports both sync and async callables. Results are cached per
-    callable within the resolution cycle when `use_cache` is enabled.
+    parents. Supports both sync and async callables.
 
     Args:
         dependant: The root of the dependency tree to resolve.
-        cache: Shared cache for the current resolution cycle.
 
     Returns:
         A mapping of parameter names to their resolved values.
     """
-    if cache is None:
-        cache = {}
-
     values: dict[str, Any] = {}
 
     for sub_dep in dependant.dependencies:
-        if sub_dep.use_cache and sub_dep.call in cache:
-            values[sub_dep.param_name] = cache[sub_dep.call]
-            continue
-
-        sub_values = await solve_dependencies(sub_dep, cache)
+        sub_values = await solve_dependencies(sub_dep)
         result = await _execute(sub_dep.call, sub_values)
-
-        if sub_dep.use_cache:
-            cache[sub_dep.call] = result
-
         values[sub_dep.param_name] = result
 
     return values
 
 
-def solve_dependencies_sync(
-    dependant: Dependant,
-    cache: dict[Callable[..., Any], Any] | None = None,
-) -> dict[str, Any]:
+def solve_dependencies_sync(dependant: Dependant) -> dict[str, Any]:
     """Resolve a dependency tree synchronously.
 
     Same as `solve_dependencies` but only supports sync callables.
@@ -55,7 +36,6 @@ def solve_dependencies_sync(
 
     Args:
         dependant: The root of the dependency tree to resolve.
-        cache: Shared cache for the current resolution cycle.
 
     Returns:
         A mapping of parameter names to their resolved values.
@@ -63,9 +43,6 @@ def solve_dependencies_sync(
     Raises:
         InjectionError: If an async callable is found in the tree.
     """
-    if cache is None:
-        cache = {}
-
     values: dict[str, Any] = {}
 
     for sub_dep in dependant.dependencies:
@@ -75,16 +52,8 @@ def solve_dependencies_sync(
                 f"Use an async function with @inject instead."
             )
 
-        if sub_dep.use_cache and sub_dep.call in cache:
-            values[sub_dep.param_name] = cache[sub_dep.call]
-            continue
-
-        sub_values = solve_dependencies_sync(sub_dep, cache)
+        sub_values = solve_dependencies_sync(sub_dep)
         result = sub_dep.call(**sub_values)
-
-        if sub_dep.use_cache:
-            cache[sub_dep.call] = result
-
         values[sub_dep.param_name] = result
 
     return values

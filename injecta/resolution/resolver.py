@@ -43,7 +43,6 @@ def resolve_dependencies(
 
         sub_dependant = resolve_dependencies(param.default.dependency, current_stack)
         sub_dependant.param_name = param_name
-        sub_dependant.use_cache = param.default.use_cache
         dependant.dependencies.append(sub_dependant)
 
     return dependant
