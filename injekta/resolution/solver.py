@@ -3,8 +3,8 @@ from collections.abc import Callable
 from contextlib import AsyncExitStack, ExitStack
 from typing import Any
 
-from injecta.core.models import Dependant
-from injecta.exceptions import InjectionError
+from injekta.core.models import Dependant
+from injekta.exceptions import InjectionError
 
 
 async def solve_dependencies(

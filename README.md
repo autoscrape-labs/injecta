@@ -1,11 +1,11 @@
-<h1 align="center">Injecta</h1>
+<h1 align="center">Injekta</h1>
 <p align="center">Lightweight, type-safe dependency injection for Python. One decorator, zero dependencies, full type inference. Python 3.12+</p>
 
 <p align="center">
-    <a href="https://codecov.io/gh/autoscrape-labs/injecta"><img src="https://codecov.io/gh/autoscrape-labs/injecta/graph/badge.svg" alt="Codecov"></a>
-    <img src="https://github.com/autoscrape-labs/injecta/actions/workflows/ci.yml/badge.svg" alt="Tests">
-    <img src="https://github.com/autoscrape-labs/injecta/actions/workflows/lint.yml/badge.svg" alt="Ruff">
-    <img src="https://github.com/autoscrape-labs/injecta/actions/workflows/typecheck.yml/badge.svg" alt="MyPy">
+    <a href="https://codecov.io/gh/autoscrape-labs/injekta"><img src="https://codecov.io/gh/autoscrape-labs/injekta/graph/badge.svg" alt="Codecov"></a>
+    <img src="https://github.com/autoscrape-labs/injekta/actions/workflows/ci.yml/badge.svg" alt="Tests">
+    <img src="https://github.com/autoscrape-labs/injekta/actions/workflows/lint.yml/badge.svg" alt="Ruff">
+    <img src="https://github.com/autoscrape-labs/injekta/actions/workflows/typecheck.yml/badge.svg" alt="MyPy">
     <img src="https://img.shields.io/badge/python-%3E%3D3.12-blue" alt="Python >= 3.12">
 </p>
 
@@ -14,7 +14,7 @@
 
 - [Install](#install)
 - [Quick start](#quick-start)
-- [Why injecta?](#why-injecta)
+- [Why injekta?](#why-injekta)
 - [Four ways to declare dependencies](#four-ways-to-declare-dependencies)
 - [Protocols over inheritance](#protocols-over-inheritance)
 - [Class injection](#class-injection)
@@ -29,14 +29,14 @@
 ## Install
 
 ```bash
-pip install injecta
+pip install injekta
 ```
 
 ## Quick start
 
 ```python
 from typing import Annotated
-from injecta import Needs, inject
+from injekta import Needs, inject
 
 def get_db() -> Database:
     return PostgresDB(os.environ["DATABASE_URL"])
@@ -51,9 +51,9 @@ create_user(name="John")  # db is resolved automatically
 
 That's it. No configuration, no boilerplate, no framework required.
 
-## Why injecta?
+## Why injekta?
 
-If you've used FastAPI's `Depends`, injecta is that same idea extracted into a standalone library. Most DI libraries in Python are either too complex for what they do, or too magical to reason about. injecta takes a different approach:
+If you've used FastAPI's `Depends`, injekta is that same idea extracted into a standalone library. Most DI libraries in Python are either too complex for what they do, or too magical to reason about. injekta takes a different approach:
 
 - A single decorator (`@inject`) handles everything
 - Dependencies are declared in the function signature, not in external config
@@ -63,7 +63,7 @@ If you've used FastAPI's `Depends`, injecta is that same idea extracted into a s
 
 ## Four ways to declare dependencies
 
-injecta supports four styles. Pick the one that fits your use case, or mix them freely.
+injekta supports four styles. Pick the one that fits your use case, or mix them freely.
 
 ### Factory (default value)
 
@@ -94,7 +94,7 @@ def handler(db: Annotated[Database, Needs(get_db)], name: str):
 For larger applications, register implementations in a `Container` and reference them by type.
 
 ```python
-from injecta import Container
+from injekta import Container
 
 container = Container()
 container.register(Database, PostgresDB())
@@ -129,7 +129,7 @@ def handler(
 
 ## Protocols over inheritance
 
-injecta works naturally with Python's `Protocol` for structural typing. No base classes required.
+injekta works naturally with Python's `Protocol` for structural typing. No base classes required.
 
 ```python
 from typing import Protocol
@@ -220,7 +220,7 @@ Cleanup runs even if the function raises an exception.
 
 ## Nested dependencies
 
-Dependencies can depend on other dependencies. injecta resolves the full tree.
+Dependencies can depend on other dependencies. injekta resolves the full tree.
 
 ```python
 def get_config() -> Config:
@@ -241,7 +241,7 @@ def handler(repo: UserRepository = Needs(get_user_repo)):
 
 ## Scoping and lifecycle
 
-Understanding how injecta manages instance lifetime avoids surprises.
+Understanding how injekta manages instance lifetime avoids surprises.
 
 ### Factory functions (`Needs`)
 

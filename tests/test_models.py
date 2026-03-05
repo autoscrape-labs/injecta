@@ -1,4 +1,4 @@
-from injecta.core.models import Dependant
+from injekta.core.models import Dependant
 
 
 def _provider() -> str:

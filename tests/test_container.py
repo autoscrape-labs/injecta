@@ -2,8 +2,8 @@ from typing import Annotated, Protocol
 
 import pytest
 
-from injecta import Container, Needs, inject
-from injecta.exceptions import InjectionError
+from injekta import Container, Needs, inject
+from injekta.exceptions import InjectionError
 
 
 class Database(Protocol):

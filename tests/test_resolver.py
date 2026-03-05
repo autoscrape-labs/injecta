@@ -2,9 +2,9 @@ from typing import Annotated
 
 import pytest
 
-from injecta.core.needs import Needs
-from injecta.exceptions import ResolutionError
-from injecta.resolution.resolver import resolve_dependencies
+from injekta.core.needs import Needs
+from injekta.exceptions import ResolutionError
+from injekta.resolution.resolver import resolve_dependencies
 
 
 def _get_db() -> dict[str, str]:

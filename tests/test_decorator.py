@@ -2,8 +2,8 @@ from collections.abc import AsyncGenerator, Generator
 
 import pytest
 
-from injecta import Needs, inject
-from injecta.exceptions import InjectionError
+from injekta import Needs, inject
+from injekta.exceptions import InjectionError
 
 
 def _get_config() -> dict[str, bool]:

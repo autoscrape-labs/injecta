@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "injecta"
+name = "injekta"
 version = "0.0.0"
 description = "A lightweight, type-safe dependency injection library inspired by FastAPI's Depends."
 authors = ["Thalison Fernandes <thalissfernandes99@gmail.com>"]
 readme = "README.md"
 packages = [
-    {include = "injecta"}
+    {include = "injekta"}
 ]
-include = ["injecta/py.typed"]
+include = ["injekta/py.typed"]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -43,11 +43,11 @@ addopts = '-p no:warnings'
 asyncio_mode = 'strict'
 
 [tool.taskipy.tasks]
-lint = 'ruff check injecta/ tests/'
-format = 'ruff check injecta/ tests/ --fix; ruff format injecta/ tests/'
-test = 'pytest -s -x --cov=injecta -vv'
+lint = 'ruff check injekta/ tests/'
+format = 'ruff check injekta/ tests/ --fix; ruff format injekta/ tests/'
+test = 'pytest -s -x --cov=injekta -vv'
 post_test = 'coverage html'
-typecheck = 'mypy injecta/'
+typecheck = 'mypy injekta/'
 
 [tool.mypy]
 strict = true

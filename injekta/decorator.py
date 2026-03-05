@@ -4,8 +4,8 @@ from contextlib import AsyncExitStack, ExitStack
 from functools import wraps
 from typing import Any, ParamSpec, TypeVar, overload
 
-from injecta.resolution.resolver import resolve_dependencies
-from injecta.resolution.solver import solve_dependencies, solve_dependencies_sync
+from injekta.resolution.resolver import resolve_dependencies
+from injekta.resolution.solver import solve_dependencies, solve_dependencies_sync
 
 P = ParamSpec('P')
 R = TypeVar('R')

@@ -5,7 +5,7 @@ from typing import Any
 
 @dataclass
 class Dependant:
-    """Node in the dependency tree representing a single injectable callable.
+    """Node in the dependency tree representing a single injektable callable.
 
     Each node holds a reference to its callable and a list of sub-dependencies
     that must be resolved before the callable can be executed.

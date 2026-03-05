@@ -2,11 +2,11 @@ from collections.abc import AsyncGenerator, Generator
 
 import pytest
 
-from injecta.core.models import Dependant
-from injecta.core.needs import Needs
-from injecta.exceptions import InjectionError
-from injecta.resolution.resolver import resolve_dependencies
-from injecta.resolution.solver import solve_dependencies, solve_dependencies_sync
+from injekta.core.models import Dependant
+from injekta.core.needs import Needs
+from injekta.exceptions import InjectionError
+from injekta.resolution.resolver import resolve_dependencies
+from injekta.resolution.solver import solve_dependencies, solve_dependencies_sync
 
 
 def _get_config() -> dict[str, bool]:

@@ -1,4 +1,4 @@
-from injecta.core.needs import Needs
+from injekta.core.needs import Needs
 
 
 def _dummy_dependency() -> str:

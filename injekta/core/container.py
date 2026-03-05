@@ -3,8 +3,8 @@ from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from typing import Any, TypeVar
 
-from injecta.core.needs import Needs as NeedsMarker
-from injecta.exceptions import InjectionError
+from injekta.core.needs import Needs as NeedsMarker
+from injekta.exceptions import InjectionError
 
 T = TypeVar('T')
 

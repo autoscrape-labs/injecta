@@ -1,8 +1,8 @@
-class InjectaError(Exception):
-    """Base exception for all injecta errors."""
+class InjektaError(Exception):
+    """Base exception for all injekta errors."""
 
 
-class ResolutionError(InjectaError):
+class ResolutionError(InjektaError):
     """Raised when the dependency tree cannot be built.
 
     This typically indicates structural issues like circular dependencies
@@ -10,7 +10,7 @@ class ResolutionError(InjectaError):
     """
 
 
-class InjectionError(InjectaError):
+class InjectionError(InjektaError):
     """Raised when dependencies cannot be resolved at runtime.
 
     This covers issues like using async dependencies in a sync context.
