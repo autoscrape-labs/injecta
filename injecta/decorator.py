@@ -1,5 +1,6 @@
 import inspect
 from collections.abc import Awaitable, Callable
+from contextlib import AsyncExitStack, ExitStack
 from functools import wraps
 from typing import Any, ParamSpec, TypeVar, overload
 
@@ -23,7 +24,7 @@ def inject(func: Callable[P, Any]) -> Callable[P, Any]:
 
     Analyzes the function signature once at decoration time, then resolves
     all dependencies on each call. Supports both sync and async functions.
-    Works with both `Needs(callable)` and `container.Needs(Type)`.
+    Generator dependencies (yield) are cleaned up after the function returns.
 
     Args:
         func: The function to decorate.
@@ -44,18 +45,20 @@ def inject(func: Callable[P, Any]) -> Callable[P, Any]:
 
         @wraps(func)
         async def async_wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
-            dep_values = await solve_dependencies(dependant)
-            for key, value in dep_values.items():
-                kwargs.setdefault(key, value)  # type: ignore[union-attr]
-            return await func(*args, **kwargs)
+            async with AsyncExitStack() as exit_stack:
+                dep_values = await solve_dependencies(dependant, _exit_stack=exit_stack)
+                for key, value in dep_values.items():
+                    kwargs.setdefault(key, value)  # type: ignore[union-attr]
+                return await func(*args, **kwargs)
 
         return async_wrapper
 
     @wraps(func)
     def sync_wrapper(*args: P.args, **kwargs: P.kwargs) -> Any:
-        dep_values = solve_dependencies_sync(dependant)
-        for key, value in dep_values.items():
-            kwargs.setdefault(key, value)  # type: ignore[union-attr]
-        return func(*args, **kwargs)
+        with ExitStack() as exit_stack:
+            dep_values = solve_dependencies_sync(dependant, _exit_stack=exit_stack)
+            for key, value in dep_values.items():
+                kwargs.setdefault(key, value)  # type: ignore[union-attr]
+            return func(*args, **kwargs)
 
     return sync_wrapper
