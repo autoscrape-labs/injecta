@@ -108,6 +108,83 @@ class TestContainerNeeds:
         assert result is db
 
 
+class TestContainerOverride:
+    def test_override_replaces_singleton(self) -> None:
+        container = Container()
+        original_db = FakeDB()
+        override_db = FakeDB()
+        container.register(Database, original_db)
+
+        with container.override(Database, override_db):
+            assert container.resolve(Database) is override_db
+
+        assert container.resolve(Database) is original_db
+
+    def test_override_replaces_factory(self) -> None:
+        container = Container()
+        container.register(Database, FakeDB)
+        override_db = FakeDB()
+
+        with container.override(Database, override_db):
+            assert container.resolve(Database) is override_db
+
+        result = container.resolve(Database)
+        assert isinstance(result, FakeDB)
+        assert result is not override_db
+
+    def test_override_with_factory_over_singleton(self) -> None:
+        container = Container()
+        original_db = FakeDB()
+        container.register(Database, original_db)
+
+        with container.override(Database, FakeDB):
+            first = container.resolve(Database)
+            second = container.resolve(Database)
+            assert first is not second
+
+        assert container.resolve(Database) is original_db
+
+    def test_override_restores_on_exception(self) -> None:
+        container = Container()
+        original_db = FakeDB()
+        container.register(Database, original_db)
+
+        with pytest.raises(RuntimeError):
+            with container.override(Database, FakeDB()):
+                raise RuntimeError('boom')
+
+        assert container.resolve(Database) is original_db
+
+    def test_nested_overrides(self) -> None:
+        container = Container()
+        db_a = FakeDB()
+        db_b = FakeDB()
+        db_c = FakeDB()
+        container.register(Database, db_a)
+
+        with container.override(Database, db_b):
+            assert container.resolve(Database) is db_b
+
+            with container.override(Database, db_c):
+                assert container.resolve(Database) is db_c
+
+            assert container.resolve(Database) is db_b
+
+        assert container.resolve(Database) is db_a
+
+    def test_override_works_with_inject(self) -> None:
+        container = Container()
+        container.register(Database, FakeDB())
+        override_db = FakeDB()
+
+        @inject
+        def handler(db: Annotated[Database, container.Needs(Database)]) -> object:
+            return db
+
+        with container.override(Database, override_db):
+            assert handler() is override_db
+
+
 class TestContainerInjectSync:
     def test_injects_registered_type(self) -> None:
         container = Container()
