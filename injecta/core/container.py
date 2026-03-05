@@ -34,7 +34,6 @@ class Container:
         handler(name="John")  # db and logger resolved from container
         ```
     """
-
     def __init__(self) -> None:
         self._singletons: dict[type[Any], Any] = {}
         self._factories: dict[type[Any], Callable[..., Any]] = {}
