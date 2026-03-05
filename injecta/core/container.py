@@ -1,15 +1,10 @@
-import inspect
-from collections.abc import Awaitable, Callable
-from typing import Any, ParamSpec, TypeVar, overload
+from collections.abc import Callable
+from typing import Any, TypeVar
 
-from injecta._wiring import build_injector
-from injecta.core.needs import Needs
+from injecta.core.needs import Needs as NeedsMarker
 from injecta.exceptions import InjectionError
-from injecta.resolution.resolver import resolve_dependencies
 
 T = TypeVar('T')
-P = ParamSpec('P')
-R = TypeVar('R')
 
 
 class Container:
@@ -19,17 +14,24 @@ class Container:
     Instances are treated as singletons, classes/callables as factories
     that produce a new instance on each resolution.
 
+    Use `container.Needs(Type)` to create a `Needs` marker bound to this
+    container, then combine with `@inject` as usual.
+
     Example:
         ```python
         container = Container()
         container.register(Database, PostgresDB())
         container.register(Logger, ConsoleLogger)
 
-        @container.inject
-        def handler(db: Database, logger: Logger, name: str):
+        @inject
+        def handler(
+            db=container.Needs(Database),
+            logger=container.Needs(Logger),
+            name: str,
+        ):
             ...
 
-        handler(name="John")  # db and logger auto-injected
+        handler(name="John")  # db and logger resolved from container
         ```
     """
 
@@ -72,64 +74,24 @@ class Container:
 
         raise InjectionError(f"No registration found for '{protocol.__name__}'")
 
-    def is_registered(self, protocol: type[Any]) -> bool:
-        """Check if a type has been registered in this container."""
-        return protocol in self._singletons or protocol in self._factories
+    def Needs(self, protocol: type[T], *, use_cache: bool = True) -> NeedsMarker[T]:  # noqa: N802
+        """Create a `Needs` marker bound to this container.
 
-    @overload
-    def inject(self, func: Callable[P, Awaitable[R]]) -> Callable[P, Awaitable[R]]: ...
-
-    @overload
-    def inject(self, func: Callable[P, R]) -> Callable[P, R]: ...
-
-    def inject(self, func: Callable[P, Any]) -> Callable[P, Any]:
-        """Decorator that injects dependencies from this container.
-
-        Resolves parameters by matching their type annotation against registered
-        types. Also supports `Needs()` markers for factory-based injection.
-        Parameters with no registration and no `Needs()` are left for the caller.
+        Returns a `Needs` instance whose dependency resolves from this
+        container by type. Works seamlessly with the `@inject` decorator.
 
         Args:
-            func: The function to decorate.
+            protocol: The type to resolve from this container.
+            use_cache: Whether to cache the result within a single resolution cycle.
 
         Returns:
-            A wrapper that auto-injects registered dependencies.
+            A `Needs` marker that resolves `protocol` from this container.
 
         Example:
             ```python
-            @container.inject
-            def handler(db: Database, name: str):
-                ...
-
-            handler(name="John")  # db resolved from container
+            @inject
+            def handler(db=container.Needs(Database)):
+                db.query(...)
             ```
         """
-        dependant = resolve_dependencies(func)
-        registered_params = self._resolve_registered_params(func)
-
-        def container_resolver() -> dict[str, Any]:
-            return {
-                name: self.resolve(protocol)
-                for name, protocol in registered_params.items()
-            }
-
-        return build_injector(func, dependant, container_resolver)
-
-    def _resolve_registered_params(
-        self, func: Callable[..., Any]
-    ) -> dict[str, type[Any]]:
-        params: dict[str, type[Any]] = {}
-        signature = inspect.signature(func)
-
-        for param_name, param in signature.parameters.items():
-            if isinstance(param.default, Needs):
-                continue
-
-            annotation = param.annotation
-            if annotation is inspect.Parameter.empty:
-                continue
-
-            if isinstance(annotation, type) and self.is_registered(annotation):
-                params[param_name] = annotation
-
-        return params
+        return NeedsMarker(lambda: self.resolve(protocol), use_cache=use_cache)
