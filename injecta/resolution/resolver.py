@@ -1,6 +1,6 @@
 import inspect
 from collections.abc import Callable
-from typing import Any
+from typing import Annotated, Any, get_args, get_origin
 
 from injecta.core.models import Dependant
 from injecta.core.needs import Needs
@@ -13,8 +13,12 @@ def resolve_dependencies(
 ) -> Dependant:
     """Analyze a callable's signature and build its dependency tree.
 
-    Inspects each parameter for `Needs()` markers and recursively resolves
-    sub-dependencies, producing a complete `Dependant` tree.
+    Inspects each parameter for `Needs()` markers in both default values
+    and `Annotated` type hints, then recursively resolves sub-dependencies.
+
+    Supports two styles:
+        - `db: Database = Needs(get_db)` (default value)
+        - `db: Annotated[Database, Needs(get_db)]` (annotation)
 
     Args:
         call: The callable to analyze.
@@ -38,11 +42,26 @@ def resolve_dependencies(
     signature = inspect.signature(call)
 
     for param_name, param in signature.parameters.items():
-        if not isinstance(param.default, Needs):
+        needs = _extract_needs(param)
+        if needs is None:
             continue
 
-        sub_dependant = resolve_dependencies(param.default.dependency, current_stack)
+        sub_dependant = resolve_dependencies(needs.dependency, current_stack)
         sub_dependant.param_name = param_name
         dependant.dependencies.append(sub_dependant)
 
     return dependant
+
+
+def _extract_needs(param: inspect.Parameter) -> Needs[Any] | None:
+    if isinstance(param.default, Needs):
+        return param.default
+
+    if get_origin(param.annotation) is not Annotated:
+        return None
+
+    for arg in get_args(param.annotation):
+        if isinstance(arg, Needs):
+            return arg
+
+    return None
