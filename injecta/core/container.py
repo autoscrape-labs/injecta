@@ -1,5 +1,6 @@
 import inspect
-from collections.abc import Callable
+from collections.abc import Callable, Generator
+from contextlib import contextmanager
 from typing import Any, TypeVar
 
 from injecta.core.needs import Needs as NeedsMarker
@@ -96,3 +97,43 @@ class Container:
             ```
         """
         return NeedsMarker(lambda: self.resolve(protocol))
+
+    @contextmanager
+    def override(
+        self, protocol: type[T], implementation: T | type[T] | Callable[..., T],
+    ) -> Generator[None]:
+        """Temporarily replace a registration for the duration of the context.
+
+        Restores the original registration (or removes the override if there
+        was none) when the context exits. Supports nesting.
+
+        Args:
+            protocol: The type to override.
+            implementation: The replacement instance, class, or callable.
+
+        Example:
+            ```python
+            with container.override(Database, FakeDB()):
+                handler()  # uses FakeDB
+            # original registration restored
+            ```
+        """
+        had_singleton = protocol in self._singletons
+        had_factory = protocol in self._factories
+        prev_singleton = self._singletons.get(protocol)
+        prev_factory = self._factories.get(protocol)
+
+        self._singletons.pop(protocol, None)
+        self._factories.pop(protocol, None)
+        self.register(protocol, implementation)
+
+        try:
+            yield
+        finally:
+            self._singletons.pop(protocol, None)
+            self._factories.pop(protocol, None)
+
+            if had_singleton:
+                self._singletons[protocol] = prev_singleton
+            if had_factory:
+                self._factories[protocol] = prev_factory
