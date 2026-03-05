@@ -52,6 +52,32 @@ class TestSolveDependenciesAsync:
         assert values == {'service': {'service': 'api', 'connection': 'db'}}
 
     @pytest.mark.asyncio
+    async def test_deduplicates_diamond_dependency(self) -> None:
+        call_count = 0
+
+        def get_config() -> dict[str, bool]:
+            nonlocal call_count
+            call_count += 1
+            return {'debug': True}
+
+        def get_db(config: dict[str, bool] = Needs(get_config)) -> str:
+            return 'db'
+
+        def get_auth(config: dict[str, bool] = Needs(get_config)) -> str:
+            return 'auth'
+
+        def handler(
+            db: str = Needs(get_db),
+            auth: str = Needs(get_auth),
+        ) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+        values = await solve_dependencies(dependant)
+
+        assert values == {'db': 'db', 'auth': 'auth'}
+        assert call_count == 1
+
+    @pytest.mark.asyncio
     async def test_no_dependencies_returns_empty(self) -> None:
         dependant = Dependant(call=lambda: None)
         values = await solve_dependencies(dependant)
@@ -75,6 +101,31 @@ class TestSolveDependenciesSync:
         values = solve_dependencies_sync(dependant)
 
         assert values == {'service': {'service': 'api', 'connection': 'db'}}
+
+    def test_deduplicates_diamond_dependency_sync(self) -> None:
+        call_count = 0
+
+        def get_config() -> dict[str, bool]:
+            nonlocal call_count
+            call_count += 1
+            return {'debug': True}
+
+        def get_db(config: dict[str, bool] = Needs(get_config)) -> str:
+            return 'db'
+
+        def get_auth(config: dict[str, bool] = Needs(get_config)) -> str:
+            return 'auth'
+
+        def handler(
+            db: str = Needs(get_db),
+            auth: str = Needs(get_auth),
+        ) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+        values = solve_dependencies_sync(dependant)
+
+        assert values == {'db': 'db', 'auth': 'auth'}
+        assert call_count == 1
 
     def test_raises_on_async_dependency(self) -> None:
         def handler(db: dict[str, str] = Needs(_get_async_db)) -> None: ...
