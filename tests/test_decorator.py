@@ -183,7 +183,6 @@ class TestInjectYieldSync:
         assert result == ({'debug': True}, 'db')
         assert cleanup_called
 
-
     def test_teardown_runs_in_reverse_order(self) -> None:
         events: list[str] = []
 
@@ -271,4 +270,3 @@ class TestInjectYieldAsync:
             await handler()
 
         assert cleanup_called
-
