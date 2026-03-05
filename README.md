@@ -331,15 +331,12 @@ def handler(
 
 injekta raises clear, specific exceptions when something goes wrong:
 
-<<<<<<< HEAD
 | Exception | When | Phase |
 |---|---|---|
 | `ResolutionError` | Circular dependency, invalid signature | Decoration time (`@inject`) |
 | `InjectionError` | Unregistered type, async dep in sync context | Call time (function execution) |
 | `InjektaError` | Base class for all injekta errors | Catch-all |
 
-=======
->>>>>>> e5c9549e05c18afd14196543e5964571988d531a
 ```python
 from injekta.exceptions import InjectionError, ResolutionError
 ```
