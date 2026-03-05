@@ -1,6 +1,14 @@
-# Injecta: lightweight, type-safe dependency injection for Python
+<h1 align="center">Injecta</h1>
+<p align="center">Lightweight, type-safe dependency injection for Python. One decorator, zero dependencies, full type inference. Python 3.12+</p>
 
-One decorator, zero dependencies, full type inference. Python 3.12+.
+<p align="center">
+    <a href="https://codecov.io/gh/autoscrape-labs/injecta"><img src="https://codecov.io/gh/autoscrape-labs/injecta/graph/badge.svg" alt="Codecov"></a>
+    <img src="https://github.com/autoscrape-labs/injecta/actions/workflows/ci.yml/badge.svg" alt="Tests">
+    <img src="https://github.com/autoscrape-labs/injecta/actions/workflows/lint.yml/badge.svg" alt="Ruff">
+    <img src="https://github.com/autoscrape-labs/injecta/actions/workflows/typecheck.yml/badge.svg" alt="MyPy">
+    <img src="https://img.shields.io/badge/python-%3E%3D3.12-blue" alt="Python >= 3.12">
+</p>
+
 
 ## Table of contents
 
