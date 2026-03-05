@@ -46,6 +46,32 @@ class TestContainerRegister:
         assert isinstance(second, FakeDB)
         assert first is not second
 
+    def test_register_lambda_as_factory(self) -> None:
+        container = Container()
+        container.register(Database, lambda: FakeDB())
+
+        first = container.resolve(Database)
+        second = container.resolve(Database)
+
+        assert isinstance(first, FakeDB)
+        assert isinstance(second, FakeDB)
+        assert first is not second
+
+    def test_register_function_as_factory(self) -> None:
+        container = Container()
+
+        def make_db() -> FakeDB:
+            return FakeDB()
+
+        container.register(Database, make_db)
+
+        first = container.resolve(Database)
+        second = container.resolve(Database)
+
+        assert isinstance(first, FakeDB)
+        assert isinstance(second, FakeDB)
+        assert first is not second
+
 
 class TestContainerResolve:
     def test_raises_on_unregistered_type(self) -> None:
