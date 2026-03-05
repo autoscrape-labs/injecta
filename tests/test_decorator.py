@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator, Generator
+
 import pytest
 
 from injecta import Needs, inject
@@ -112,4 +114,111 @@ class TestInjectAsync:
 
         assert result == custom
 
+
+class TestInjectYieldSync:
+    def test_yield_dependency_returns_value(self) -> None:
+        def get_db() -> Generator[str]:
+            yield 'db_connection'
+
+        @inject
+        def handler(db: str = Needs(get_db)) -> str:
+            return db
+
+        assert handler() == 'db_connection'
+
+    def test_yield_dependency_runs_cleanup(self) -> None:
+        events: list[str] = []
+
+        def get_db() -> Generator[str]:
+            events.append('setup')
+            yield 'db'
+            events.append('teardown')
+
+        @inject
+        def handler(db: str = Needs(get_db)) -> str:
+            events.append('handler')
+            return db
+
+        handler()
+
+        assert events == ['setup', 'handler', 'teardown']
+
+    def test_yield_cleanup_runs_on_exception(self) -> None:
+        cleanup_called = False
+
+        def get_db() -> Generator[str]:
+            nonlocal cleanup_called
+            yield 'db'
+            cleanup_called = True
+
+        @inject
+        def handler(db: str = Needs(get_db)) -> None:
+            raise ValueError('boom')
+
+        with pytest.raises(ValueError, match='boom'):
+            handler()
+
+        assert cleanup_called
+
+    def test_mixed_yield_and_regular_dependencies(self) -> None:
+        def get_config() -> dict[str, bool]:
+            return {'debug': True}
+
+        cleanup_called = False
+
+        def get_db() -> Generator[str]:
+            nonlocal cleanup_called
+            yield 'db'
+            cleanup_called = True
+
+        @inject
+        def handler(
+            config: dict[str, bool] = Needs(get_config),
+            db: str = Needs(get_db),
+        ) -> tuple[dict[str, bool], str]:
+            return config, db
+
+        result = handler()
+
+        assert result == ({'debug': True}, 'db')
+        assert cleanup_called
+
+
+class TestInjectYieldAsync:
+    @pytest.mark.asyncio
+    async def test_async_yield_dependency(self) -> None:
+        events: list[str] = []
+
+        async def get_db() -> AsyncGenerator[str]:
+            events.append('setup')
+            yield 'async_db'
+            events.append('teardown')
+
+        @inject
+        async def handler(db: str = Needs(get_db)) -> str:
+            events.append('handler')
+            return db
+
+        result = await handler()
+
+        assert result == 'async_db'
+        assert events == ['setup', 'handler', 'teardown']
+
+    @pytest.mark.asyncio
+    async def test_async_yield_cleanup_runs_on_exception(self) -> None:
+        cleanup_called = False
+
+        async def get_db() -> AsyncGenerator[str]:
+            nonlocal cleanup_called
+            yield 'db'
+            cleanup_called = True
+
+        @inject
+        async def handler(db: str = Needs(get_db)) -> None:
+            raise ValueError('boom')
+
+        with pytest.raises(ValueError, match='boom'):
+            await handler()
+
+        assert cleanup_called
 

@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator, Generator
+
 import pytest
 
 from injecta.core.models import Dependant
@@ -134,3 +136,53 @@ class TestSolveDependenciesSync:
 
         with pytest.raises(InjectionError, match='async dependency.*sync context'):
             solve_dependencies_sync(dependant)
+
+
+class TestYieldDependenciesSync:
+    def test_resolves_sync_generator_value(self) -> None:
+        def get_db() -> Generator[str]:
+            yield 'db_connection'
+
+        def handler(db: str = Needs(get_db)) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+        values = solve_dependencies_sync(dependant)
+
+        assert values == {'db': 'db_connection'}
+
+    def test_raises_on_async_generator_in_sync(self) -> None:
+        async def get_db() -> AsyncGenerator[str]:
+            yield 'db'
+
+        def handler(db: str = Needs(get_db)) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+
+        with pytest.raises(InjectionError, match='async dependency.*sync context'):
+            solve_dependencies_sync(dependant)
+
+
+class TestYieldDependenciesAsync:
+    @pytest.mark.asyncio
+    async def test_resolves_sync_generator_value(self) -> None:
+        def get_db() -> Generator[str]:
+            yield 'db_connection'
+
+        def handler(db: str = Needs(get_db)) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+        values = await solve_dependencies(dependant)
+
+        assert values == {'db': 'db_connection'}
+
+    @pytest.mark.asyncio
+    async def test_resolves_async_generator_value(self) -> None:
+        async def get_db() -> AsyncGenerator[str]:
+            yield 'async_db_connection'
+
+        def handler(db: str = Needs(get_db)) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+        values = await solve_dependencies(dependant)
+
+        assert values == {'db': 'async_db_connection'}
