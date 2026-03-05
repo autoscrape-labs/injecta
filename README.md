@@ -12,6 +12,7 @@ One decorator, zero dependencies, full type inference. Python 3.12+.
 - [Class injection](#class-injection)
 - [Async support](#async-support)
 - [Nested dependencies](#nested-dependencies)
+- [Scoping and lifecycle](#scoping-and-lifecycle)
 - [Mixing styles](#mixing-styles)
 - [Testing](#testing)
 - [License](#license)
@@ -95,10 +96,11 @@ def handler(db: Database = container.Needs(Database)):
     ...
 ```
 
-Instances are singletons. Pass a class instead to get a new instance on each resolution:
+Instances are singletons. Pass a class, lambda, or function to get a new value on each resolution:
 
 ```python
-container.register(Database, PostgresDB)  # factory, new instance every time
+container.register(Database, PostgresDB)                          # class factory
+container.register(Database, lambda: PostgresDB("localhost"))     # lambda factory
 ```
 
 ### Container (Annotated)
@@ -196,6 +198,80 @@ def handler(repo: UserRepository = Needs(get_user_repo)):
 
 # Resolves: get_config -> get_db -> get_user_repo -> handler
 ```
+
+## Scoping and lifecycle
+
+Understanding how injecta manages instance lifetime avoids surprises.
+
+### Factory functions (`Needs`)
+
+Every call to the injected function re-executes the factory from scratch. There is no implicit caching between calls:
+
+```python
+def get_db() -> Database:
+    print("connecting...")
+    return PostgresDB()
+
+@inject
+def handler(db: Database = Needs(get_db)):
+    ...
+
+handler()  # prints "connecting..."
+handler()  # prints "connecting..." again
+```
+
+Within a single call, if the same factory appears in multiple branches of the dependency tree (diamond dependency), it is executed only once:
+
+```python
+def get_config() -> Config:
+    return Config.from_env()  # called once, not twice
+
+def get_db(config: Config = Needs(get_config)) -> Database: ...
+def get_cache(config: Config = Needs(get_config)) -> Cache: ...
+
+@inject
+def handler(
+    db: Database = Needs(get_db),
+    cache: Cache = Needs(get_cache),
+):
+    ...
+
+handler()  # get_config runs once, result shared by get_db and get_cache
+```
+
+### Container: singletons vs factories
+
+`Container.register` auto-detects the strategy based on what you pass:
+
+| You register | Behavior | Example |
+|---|---|---|
+| An **instance** | Singleton. Same object returned every time. | `container.register(Database, PostgresDB())` |
+| A **class** | Factory. New instance created on each resolution. | `container.register(Database, PostgresDB)` |
+| A **function/lambda** | Factory. Called on each resolution. | `container.register(Database, lambda: PostgresDB("url"))` |
+
+```python
+container = Container()
+
+# Singleton: same connection reused everywhere
+db = PostgresDB(os.environ["DATABASE_URL"])
+container.register(Database, db)
+
+# Factory (class): fresh instance per resolution, no constructor args
+container.register(Logger, ConsoleLogger)
+
+# Factory (lambda): fresh instance with custom arguments
+container.register(Database, lambda: PostgresDB("localhost", 5432))
+
+# Factory (function): same as lambda, useful for complex setup
+def make_cache() -> RedisCache:
+    cache = RedisCache(os.environ["REDIS_URL"])
+    cache.ping()
+    return cache
+
+container.register(Cache, make_cache)
+```
+
+If you need a singleton, instantiate it yourself and register the instance. If you need a fresh object every time, register a class, lambda, or function.
 
 ## Mixing styles
 
