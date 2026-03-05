@@ -2,9 +2,9 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from injecta.core.models import Dependant
+from injecta.core.needs import Needs
 from injecta.exceptions import ResolutionError
-from injecta.models import Dependant
-from injecta.needs import Needs
 
 
 def resolve_dependencies(

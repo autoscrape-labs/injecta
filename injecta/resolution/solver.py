@@ -2,8 +2,8 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from injecta.core.models import Dependant
 from injecta.exceptions import InjectionError
-from injecta.models import Dependant
 
 
 async def solve_dependencies(
