@@ -51,8 +51,8 @@ class Container:
         """
         if isinstance(implementation, type):
             self._factories[protocol] = implementation
-        else:
-            self._singletons[protocol] = implementation
+            return
+        self._singletons[protocol] = implementation
 
     def resolve(self, protocol: type[T]) -> T:
         """Resolve a dependency by its registered type.
