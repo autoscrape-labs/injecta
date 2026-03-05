@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Generic, TypeVar
+from collections.abc import Awaitable, Callable
+from typing import Any, Generic, TypeVar, overload
 
 T = TypeVar('T')
 
@@ -11,9 +11,10 @@ class Needs(Generic[T]):
 
     The return type of the dependency callable is preserved through the generic
     parameter `T`, enabling full type inference without explicit annotations.
+    Supports both sync and async callables.
 
     Args:
-        dependency: The callable that provides the dependency value.
+        dependency: The callable (sync or async) that provides the dependency value.
 
     Example:
         ```python
@@ -28,7 +29,13 @@ class Needs(Generic[T]):
 
     __slots__ = ('dependency',)
 
-    def __init__(self, dependency: Callable[..., T]) -> None:
+    @overload
+    def __init__(self, dependency: Callable[..., Awaitable[T]]) -> None: ...
+
+    @overload
+    def __init__(self, dependency: Callable[..., T]) -> None: ...
+
+    def __init__(self, dependency: Callable[..., Any]) -> None:
         self.dependency = dependency
 
     def __repr__(self) -> str:

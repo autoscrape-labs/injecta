@@ -17,7 +17,9 @@ class Container:
 
     Stores mappings from protocol/abstract types to their implementations.
     Instances are treated as singletons, classes/callables as factories
-    that produce a new instance on each resolution.
+    that produce a new instance on each resolution. Async callables are
+    stored as async factories and resolved via `resolve_async()` or
+    automatically when used with `@inject` on an async function.
 
     Use `container.Needs(Type)` to create a `Needs` marker bound to this
     container, then combine with `@inject` as usual.
@@ -44,27 +46,67 @@ class Container:
         self._lock = threading.RLock()
         self._singletons: dict[type[Any], Any] = {}
         self._factories: dict[type[Any], Callable[..., Any]] = {}
+        self._async_factories: dict[type[Any], Callable[..., Any]] = {}
 
     def register(self, protocol: type[T], implementation: T | type[T] | Callable[..., T]) -> None:
         """Register a dependency for a given type.
 
-        If `implementation` is a class or function, it's treated as a factory
-        (new value per resolution). If it's an instance, it's treated as a
-        singleton.
+        If `implementation` is an async callable, it's treated as an async
+        factory. If it's a class or sync function, it's treated as a sync
+        factory (new value per resolution). If it's an instance, it's
+        treated as a singleton.
 
         Args:
             protocol: The type to register (typically a Protocol class).
             implementation: A concrete instance (singleton), class (factory),
-                or callable (factory).
+                or callable (sync/async factory).
         """
         with self._lock:
-            if isinstance(implementation, type) or inspect.isfunction(implementation):
+            self._singletons.pop(protocol, None)
+            self._factories.pop(protocol, None)
+            self._async_factories.pop(protocol, None)
+
+            if inspect.iscoroutinefunction(implementation):
+                self._async_factories[protocol] = implementation
+            elif isinstance(implementation, type) or inspect.isfunction(implementation):
                 self._factories[protocol] = implementation
-                return
-            self._singletons[protocol] = implementation
+            else:
+                self._singletons[protocol] = implementation
 
     def resolve(self, protocol: type[T]) -> T:
-        """Resolve a dependency by its registered type.
+        """Resolve a dependency synchronously by its registered type.
+
+        Args:
+            protocol: The type to look up.
+
+        Returns:
+            The registered instance or a new instance from the factory.
+
+        Raises:
+            InjectionError: If no registration exists for the type, or if
+                the registered factory is async.
+        """
+        with self._lock:
+            if protocol in self._singletons:
+                return self._singletons[protocol]  # type: ignore[no-any-return]
+
+            if protocol in self._factories:
+                return self._factories[protocol]()  # type: ignore[no-any-return]
+
+            if protocol in self._async_factories:
+                raise InjectionError(
+                    f"Cannot resolve async factory for '{protocol.__name__}' synchronously. "
+                    f'Use resolve_async() or an async context with @inject.'
+                )
+
+            raise InjectionError(f"No registration found for '{protocol.__name__}'")
+
+    async def resolve_async(self, protocol: type[T]) -> T:
+        """Resolve a dependency asynchronously by its registered type.
+
+        Supports all registration types: singletons, sync factories, and
+        async factories. Prefer this over `resolve()` when working in
+        async contexts with async factories.
 
         Args:
             protocol: The type to look up.
@@ -79,16 +121,23 @@ class Container:
             if protocol in self._singletons:
                 return self._singletons[protocol]  # type: ignore[no-any-return]
 
-            if protocol in self._factories:
+            if protocol in self._async_factories:
+                factory = self._async_factories[protocol]
+            elif protocol in self._factories:
                 return self._factories[protocol]()  # type: ignore[no-any-return]
+            else:
+                raise InjectionError(f"No registration found for '{protocol.__name__}'")
 
-            raise InjectionError(f"No registration found for '{protocol.__name__}'")
+        return await factory()  # type: ignore[no-any-return]
 
     def Needs(self, protocol: type[T]) -> NeedsMarker[T]:  # noqa: N802
         """Create a `Needs` marker bound to this container.
 
         Returns a `Needs` instance whose dependency resolves from this
         container by type. Works seamlessly with the `@inject` decorator.
+
+        If the registered implementation is an async factory, the marker
+        wraps an async resolver so that `@inject` can await it correctly.
 
         Args:
             protocol: The type to resolve from this container.
@@ -103,6 +152,16 @@ class Container:
                 db.query(...)
             ```
         """
+        with self._lock:
+            is_async = protocol in self._async_factories
+
+        if is_async:
+
+            async def _resolve_async() -> T:
+                return await self.resolve_async(protocol)
+
+            return NeedsMarker(_resolve_async)
+
         return NeedsMarker(lambda: self.resolve(protocol))
 
     @contextmanager
@@ -130,11 +189,14 @@ class Container:
         with self._lock:
             had_singleton = protocol in self._singletons
             had_factory = protocol in self._factories
+            had_async_factory = protocol in self._async_factories
             prev_singleton = self._singletons.get(protocol)
             prev_factory = self._factories.get(protocol)
+            prev_async_factory = self._async_factories.get(protocol)
 
             self._singletons.pop(protocol, None)
             self._factories.pop(protocol, None)
+            self._async_factories.pop(protocol, None)
             self.register(protocol, implementation)
 
         try:
@@ -143,8 +205,11 @@ class Container:
             with self._lock:
                 self._singletons.pop(protocol, None)
                 self._factories.pop(protocol, None)
+                self._async_factories.pop(protocol, None)
 
                 if had_singleton:
                     self._singletons[protocol] = prev_singleton
                 if had_factory and prev_factory is not None:
                     self._factories[protocol] = prev_factory
+                if had_async_factory and prev_async_factory is not None:
+                    self._async_factories[protocol] = prev_async_factory
