@@ -1,3 +1,14 @@
+## 0.2.0 (2026-03-05)
+
+### Feat
+
+- **container**: add async factory support
+
+### Fix
+
+- **decorator**: prevent duplicate values when deps passed positionally
+- **solver**: detect multiple yields and propagate teardown exceptions
+
 ## 0.1.0 (2026-03-05)
 
 ### Feat
