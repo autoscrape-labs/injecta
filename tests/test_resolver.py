@@ -1,3 +1,5 @@
+from typing import Annotated
+
 import pytest
 
 from injecta.core.needs import Needs
@@ -69,6 +71,46 @@ class TestResolveDependencies:
 
         assert len(dependant.dependencies) == 1
         assert dependant.dependencies[0].param_name == 'db'
+
+    def test_annotated_single_dependency(self) -> None:
+        def handler(db: Annotated[dict[str, str], Needs(_get_db)]) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+
+        assert len(dependant.dependencies) == 1
+        assert dependant.dependencies[0].call is _get_db
+        assert dependant.dependencies[0].param_name == 'db'
+
+    def test_annotated_allows_mixing_with_regular_params(self) -> None:
+        def handler(
+            db: Annotated[dict[str, str], Needs(_get_db)],
+            name: str,
+            count: int = 0,
+        ) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+
+        assert len(dependant.dependencies) == 1
+        assert dependant.dependencies[0].param_name == 'db'
+
+    def test_annotated_mixed_with_default_needs(self) -> None:
+        def handler(
+            db: Annotated[dict[str, str], Needs(_get_db)],
+            config: dict[str, bool] = Needs(_get_config),
+        ) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+
+        assert len(dependant.dependencies) == 2
+        assert dependant.dependencies[0].param_name == 'db'
+        assert dependant.dependencies[1].param_name == 'config'
+
+    def test_annotated_ignores_non_needs_metadata(self) -> None:
+        def handler(name: Annotated[str, 'some metadata']) -> None: ...
+
+        dependant = resolve_dependencies(handler)
+
+        assert dependant.dependencies == []
 
     def test_detects_circular_dependency(self) -> None:
         def dep_a(b: str = Needs(lambda: '')) -> str:  # noqa: E731

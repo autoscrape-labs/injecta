@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Annotated, Protocol
 
 import pytest
 
@@ -88,7 +88,7 @@ class TestContainerInjectSync:
         container.register(Database, FakeDB())
 
         @inject
-        def handler(db=container.Needs(Database)) -> list[dict[str, str]]:
+        def handler(db: Annotated[Database, container.Needs(Database)]) -> list[dict[str, str]]:
             return db.query('SELECT 1')
 
         assert handler() == [{'sql': 'SELECT 1'}]
@@ -102,9 +102,8 @@ class TestContainerInjectSync:
 
         @inject
         def handler(
-            db=container.Needs(Database),
-            logger=container.Needs(Logger),
-            *,
+            db: Annotated[Database, container.Needs(Database)],
+            logger: Annotated[Logger, container.Needs(Logger)],
             name: str,
         ) -> str:
             logger.info(f'Creating {name}')
@@ -122,8 +121,7 @@ class TestContainerInjectSync:
 
         @inject
         def handler(
-            db=container.Needs(Database),
-            *,
+            db: Annotated[Database, container.Needs(Database)],
             name: str,
             count: int = 0,
         ) -> tuple[str, int]:
@@ -140,7 +138,7 @@ class TestContainerInjectSync:
         custom_db = FakeDB()
 
         @inject
-        def handler(db=container.Needs(Database)) -> object:
+        def handler(db: Annotated[Database, container.Needs(Database)]) -> object:
             return db
 
         result = handler(db=custom_db)
@@ -156,8 +154,8 @@ class TestContainerInjectSync:
 
         @inject
         def handler(
-            db=container.Needs(Database),
-            config: dict[str, bool] = Needs(get_config),
+            db: Annotated[Database, container.Needs(Database)],
+            config: Annotated[dict[str, bool], Needs(get_config)],
         ) -> tuple[object, dict[str, bool]]:
             return db, config
 
@@ -174,7 +172,9 @@ class TestContainerInjectAsync:
         container.register(Database, FakeDB())
 
         @inject
-        async def handler(db=container.Needs(Database)) -> list[dict[str, str]]:
+        async def handler(
+            db: Annotated[Database, container.Needs(Database)],
+        ) -> list[dict[str, str]]:
             return db.query('SELECT 1')
 
         assert await handler() == [{'sql': 'SELECT 1'}]
@@ -189,9 +189,8 @@ class TestContainerInjectAsync:
 
         @inject
         async def handler(
-            db=container.Needs(Database),
-            logger=container.Needs(Logger),
-            *,
+            db: Annotated[Database, container.Needs(Database)],
+            logger: Annotated[Logger, container.Needs(Logger)],
             name: str,
         ) -> str:
             logger.info(f'Creating {name}')
@@ -209,7 +208,9 @@ class TestContainerInjectAsync:
         custom_db = FakeDB()
 
         @inject
-        async def handler(db=container.Needs(Database)) -> object:
+        async def handler(
+            db: Annotated[Database, container.Needs(Database)],
+        ) -> object:
             return db
 
         result = await handler(db=custom_db)
